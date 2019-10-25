@@ -18,3 +18,5 @@ env_logger = "0.7.0"
 failure = "0.1.6"
 
 chrono = "0.4.9"
+
+handlebars = "2.0.2"

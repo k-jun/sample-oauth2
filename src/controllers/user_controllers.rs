@@ -2,16 +2,14 @@ use super::super::AppState;
 use crate::models::user_models::*;
 use actix_web::{
     error::Error,
-    error::{ErrorInternalServerError, ErrorNotFound},
+    error::ErrorNotFound,
     web::{Data, Json, Path},
     HttpResponse,
 };
 #[macro_use]
 use serde_json::json;
-use crate::controllers::common::{failure, success};
+use crate::controllers::common::*;
 use actix_session::Session;
-
-const SESSION_NAME: &str = "jack-x-auth";
 
 pub fn login(
     (state, json, session): (Data<AppState>, Json<UserLogin>, Session),
@@ -32,32 +30,11 @@ pub fn logout(session: Session) -> Result<HttpResponse, Error> {
     Ok(success(200, json!({})))
 }
 
-fn get_sessid(sess: Session) -> Result<i64, Error> {
-    return match sess.get(SESSION_NAME)? {
-        Some(s) => Ok(s),
-        None => Err(ErrorInternalServerError("could not find user_id")),
-    };
-}
-
-fn get_sessuser(state: &Data<AppState>, sess: Session) -> Result<User, Error> {
-    let user_id = match get_sessid(sess) {
-        Ok(id) => id,
-        Err(e) => return Err(e),
-    };
-
-    let user: User = match state.first_sql("SELECT * FROM user WHERE id = ?", (user_id,))? {
-        None => return Err(ErrorInternalServerError("could not find user")),
-        Some(u) => u,
-    };
-    return Ok(user);
-}
-
 fn get_user(state: &Data<AppState>, user_id: String) -> Result<User, Error> {
-    let user: User = match state.first_sql("SELECT * FROM user WHERE id = ?", (user_id,))? {
+    match state.first_sql("SELECT * FROM user WHERE id = ?", (user_id,))? {
         None => return Err(ErrorNotFound("could not find user")),
-        Some(u) => u,
-    };
-    return Ok(user);
+        Some(u) => Ok(u),
+    }
 }
 
 pub fn index(state: Data<AppState>, sess: Session) -> Result<HttpResponse, Error> {
@@ -119,17 +96,17 @@ pub fn create(
     json: Json<UserNew>,
     sess: Session,
 ) -> Result<HttpResponse, Error> {
-    let user = match get_sessuser(&state, sess) {
-        Ok(user) => user,
-        Err(e) => return Err(e),
-    };
-    if user.authority_level < 900 {
-        return Ok(failure(403));
-    }
+    // let user = match get_sessuser(&state, sess) {
+    //     Ok(user) => user,
+    //     Err(e) => return Err(e),
+    // };
+    // if user.authority_level < 900 {
+    //     return Ok(failure(403));
+    // }
 
-    if user.authority_level < json.authority_level {
-        return Ok(failure(403));
-    }
+    // if user.authority_level < json.authority_level {
+    //     return Ok(failure(403));
+    // }
 
     state.exec_sql(
         "INSERT INTO user (email, password, authority_level) VALUES (?, ?, ?)",

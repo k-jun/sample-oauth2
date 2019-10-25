@@ -1,4 +1,4 @@
-use crate::controllers::{index_controllers, todo_controllers, user_controllers};
+use crate::controllers::*;
 use actix_web::web;
 
 pub fn routes(app: &mut web::ServiceConfig) {
@@ -6,6 +6,8 @@ pub fn routes(app: &mut web::ServiceConfig) {
     .service(web::resource("/").to(index_controllers::index))
     .service(web::resource("/login").to(user_controllers::login))
     .service(web::resource("/logout").to(user_controllers::logout))
+    .service(web::resource("/first_flow").to(auth_controllers::first_flow))
+    .service(web::resource("/second_flow").to(auth_controllers::second_flow))
     .service(
       web::scope("/params")
         .route(
@@ -14,20 +16,6 @@ pub fn routes(app: &mut web::ServiceConfig) {
         )
         .route("query", web::get().to(index_controllers::query))
         .route("body", web::post().to(index_controllers::body)),
-    )
-    .service(
-      web::scope("/todo")
-        .service(
-          web::resource("")
-            .route(web::get().to(todo_controllers::index))
-            .route(web::post().to(todo_controllers::create)),
-        )
-        .service(
-          web::resource("/{id}")
-            .route(web::get().to(todo_controllers::read))
-            .route(web::put().to(todo_controllers::update))
-            .route(web::delete().to(todo_controllers::delete)),
-        ),
     )
     .service(
       web::scope("/user")
@@ -41,6 +29,19 @@ pub fn routes(app: &mut web::ServiceConfig) {
             .route(web::get().to(user_controllers::read))
             .route(web::put().to(user_controllers::update))
             .route(web::delete().to(user_controllers::delete)),
+        ),
+    )
+    .service(
+      web::scope("/client_token")
+        .service(
+          web::resource("")
+            .route(web::get().to(client_token_controllers::index))
+            .route(web::post().to(client_token_controllers::create)),
+        )
+        .service(
+          web::resource("/{id}")
+            .route(web::get().to(client_token_controllers::read))
+            .route(web::delete().to(client_token_controllers::delete)),
         ),
     );
 }

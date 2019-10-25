@@ -17,6 +17,8 @@ mod controllers;
 mod entities;
 mod models;
 use failure::Error as FailureError;
+use handlebars::Handlebars;
+use std::sync::Arc;
 
 use actix_session::CookieSession;
 
@@ -28,6 +30,7 @@ fn err_handle(e: impl ::failure::Fail) -> Error {
 #[derive(Clone)]
 pub struct AppState {
     pub db: mysql::Pool,
+    pub templates: Arc<Handlebars>,
 }
 
 impl AppState {
@@ -35,6 +38,17 @@ impl AppState {
         self.db
             .prep_exec(sql.as_ref(), param)
             .map(|_| ())
+            .map_err(err_handle)
+    }
+
+    fn exec_sql_insert_id(
+        &self,
+        sql: impl AsRef<str>,
+        param: impl Into<mysql::Params>,
+    ) -> Result<u64, Error> {
+        self.db
+            .prep_exec(sql.as_ref(), param)
+            .map(|result| result.last_insert_id())
             .map_err(err_handle)
     }
 
@@ -71,8 +85,14 @@ fn main() {
     let client_domain = env::var("CLIENT_DOMAIN").expect("could not find CLIENT_DOMAIN");
     let bind_address = env::var("BIND_ADDRESS").expect("could not find BIND_ADDRESS");
 
+    let mut templates = Handlebars::new();
+    templates
+        .register_template_string("first_flow", include_str!("./views/first_flow.html"))
+        .expect("failed to register template");
+
     let state = AppState {
         db: mysql::Pool::new(db_url).expect("could not connect to db"),
+        templates: Arc::new(templates),
     };
     let server = HttpServer::new(move || {
         App::new()
