@@ -14,12 +14,14 @@ extern crate log;
 extern crate mysql;
 use mysql::prelude::*;
 mod controllers;
+mod entities;
 mod models;
 use failure::Error as FailureError;
 
+use actix_session::CookieSession;
+
 fn err_handle(e: impl ::failure::Fail) -> Error {
     let e: FailureError = e.into();
-    println!("{}", e);
     e.into()
 }
 
@@ -72,8 +74,6 @@ fn main() {
     let state = AppState {
         db: mysql::Pool::new(db_url).expect("could not connect to db"),
     };
-
-    // let mut listenfd = ListenFd::from_env();
     let server = HttpServer::new(move || {
         App::new()
             .register_data(Data::new(state.clone()))
@@ -82,6 +82,10 @@ fn main() {
                     .allowed_origin(&client_domain)
                     .allowed_headers(vec![AUTHORIZATION, CONTENT_TYPE])
                     .max_age(3600),
+            )
+            .wrap(
+                CookieSession::signed(&[0; 32]) // <- create cookie based session middleware
+                    .secure(false),
             )
             .wrap(Logger::default())
             .configure(routes)

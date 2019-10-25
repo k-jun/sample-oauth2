@@ -2,24 +2,13 @@ use super::super::AppState;
 use crate::models::todo_models::*;
 use actix_web::{
   error::Error,
-  http::StatusCode,
   web::{Data, Json, Path},
   HttpResponse,
 };
 #[macro_use]
 use serde_json::json;
 
-fn failure(status: u16) -> HttpResponse {
-  let status = StatusCode::from_u16(status).expect("invalide status given");
-  HttpResponse::build(status).finish()
-}
-
-fn success(status: u16, json_str: mysql::serde_json::Value) -> HttpResponse {
-  let status = StatusCode::from_u16(status).expect("invalide status given");
-  HttpResponse::build(status)
-    .content_type("application/json")
-    .json(json_str)
-}
+use crate::controllers::common::{failure, success};
 
 fn exist_check(state: &Data<AppState>, id: String) -> Result<bool, Error> {
   let _: Todo = match state.first_sql("SELECT * FROM todo WHERE id = ?", (id,))? {
@@ -53,8 +42,6 @@ pub fn read((state, path): (Data<AppState>, Path<TodoPath>)) -> Result<HttpRespo
     None => return Ok(failure(403)),
     Some(todo) => todo,
   };
-
-  println!("{:?}", todo);
 
   Ok(success(
     200,
