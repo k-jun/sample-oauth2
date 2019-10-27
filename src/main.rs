@@ -77,10 +77,26 @@ impl AppState {
     }
 }
 
-fn main() {
+fn clean_temp_token(state: &AppState) -> Result<(), Error> {
+    state.exec_sql(
+        "DELETE FROM temp_token WHERE created_at < TIMESTAMPADD(MINUTE, -10, NOW())",
+        (),
+    )?;
+    Ok(())
+}
+
+async fn interval_executor(state: AppState) {
+    loop {
+        // every minitus
+        std::thread::sleep(std::time::Duration::from_millis(60 * 1000));
+        clean_temp_token(&state);
+    }
+}
+
+#[runtime::main]
+async fn main() {
     dotenv().ok();
     env_logger::init();
-
     let db_url = env::var("DB_ADDRESS").expect("could not find DB_ADDRESS");
     let client_domain = env::var("CLIENT_DOMAIN").expect("could not find CLIENT_DOMAIN");
     let bind_address = env::var("BIND_ADDRESS").expect("could not find BIND_ADDRESS");
@@ -94,6 +110,10 @@ fn main() {
         db: mysql::Pool::new(db_url).expect("could not connect to db"),
         templates: Arc::new(templates),
     };
+
+    // delete temp token periodically
+    runtime::spawn(interval_executor(state.clone()));
+
     let server = HttpServer::new(move || {
         App::new()
             .register_data(Data::new(state.clone()))
