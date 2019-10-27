@@ -89,8 +89,11 @@ async fn interval_executor(state: AppState) {
     loop {
         // every minitus
         std::thread::sleep(std::time::Duration::from_millis(60 * 1000));
-        clean_temp_token(&state);
+        clean_temp_token(&state).map_err(|e| {
+            break;
+        })
     }
+    println!("{}", "could not execute clean_temp_token()")
 }
 
 #[runtime::main]
