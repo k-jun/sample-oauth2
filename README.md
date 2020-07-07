@@ -1,4 +1,4 @@
-# jack-auth
+# sample-oauth2
 
 暇だからOAuth 2.0の簡易版を実装する。
 
